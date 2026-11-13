@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="uk" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>UltraBoard Pro — Інтерактивна дошка</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="board-container">
+    <div class="ambient-glow" aria-hidden="true"></div>
+
+    <canvas id="canvas-static" aria-label="Статичне полотно"></canvas>
+    <canvas id="canvas-live" aria-label="Активне полотно"></canvas>
+
+    <!-- Живий бейдж розмірів -->
+    <div class="size-badge" id="size-badge" hidden>0 × 0</div>
+
+    <!-- Радіальне меню по правому кліку (Pie Menu) -->
+    <div class="pie-menu" id="pie-menu" hidden role="menu">
+      <button type="button" class="pie-item" data-pie="sticky" style="--ang:0deg" title="Стікер">📝</button>
+      <button type="button" class="pie-item" data-pie="rect" style="--ang:60deg" title="Прямокутник">⬜</button>
+      <button type="button" class="pie-item" data-pie="arrow" style="--ang:120deg" title="Стрілка">↗️</button>
+      <button type="button" class="pie-item" data-pie="text" style="--ang:180deg" title="Текст">🔤</button>
+      <button type="button" class="pie-item" data-pie="pen" style="--ang:240deg" title="Олівець">✏️</button>
+      <button type="button" class="pie-item" data-pie="dup" style="--ang:300deg" title="Дублювати">📋</button>
+      <div class="pie-center">⚡</div>
+    </div>
+
+    <!-- Секретний X-Ray HUD -->
+    <aside class="glass-panel xray-hud" id="xray-hud" hidden>
+      <div class="xray-header">
+        <span class="xray-badge">⚡ X-RAY ENGINE</span>
+        <button type="button" class="mini-btn" id="btn-demo-scene">Демо-схема</button>
+      </div>
+      <div class="xray-stats" id="xray-stats">
+        <div><span>CPU у спокої:</span> <b>0.0% (Idle)</b></div>
+        <div><span>Час кадру:</span> <b id="xr-ms">0.0 ms</b></div>
+        <div><span>Оновлень кадрів:</span> <b id="xr-frames">0</b></div>
+        <div><span>Об'єктів (всього / у кадрі):</span> <b id="xr-els">0 / 0</b></div>
+        <div><span>Синхронізація:</span> <b id="xr-sync">Локально</b></div>
+      </div>
+      <label class="check-row">
+        <input type="checkbox" id="xr-boxes" checked>
+        <span>Показувати Bounding Boxes & Порти</span>
+      </label>
+    </aside>
+
+    <!-- Модальне вікно Профілю (Менеджер дошок) -->
+    <div class="modal-backdrop" id="boards-modal" hidden>
+      <div class="glass-panel modal-card">
+        <div class="modal-head">
+          <h3>Мої дошки та Профіль</h3>
+          <button type="button" class="action-btn" id="btn-close-boards">✕</button>
+        </div>
+        <div class="profile-row">
+          <input type="text" id="user-name-input" placeholder="Твоє ім'я в кімнаті..." maxlength="24">
+          <button type="button" class="primary-btn" id="btn-new-board">+ Нова дошка</button>
+        </div>
+        <div class="boards-list" id="boards-list"></div>
+      </div>
+    </div>
+
+    <textarea id="text-editor" hidden aria-label="Редактор тексту" rows="1"></textarea>
+    <input type="file" id="img-loader" accept="image/*" hidden>
+
+    <!-- Верхня ліва панель Профілю -->
+    <div class="glass-panel top-left-controls">
+      <button type="button" class="board-switcher-btn" id="btn-open-boards" title="Менеджер дошок">
+        <span class="dot-status" id="sync-dot"></span>
+        <span id="current-board-name">Головна дошка</span>
+        <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+
+    <!-- Головна панель інструментів (знизу) -->
+    <nav class="glass-panel toolbar" id="main-toolbar" aria-label="Інструменти">
+      <button type="button" class="tool-btn active" data-tool="select" data-key="V" title="Виділення (V)">
+        <svg viewBox="0 0 24 24"><path d="M4 4l7.07 17 2.51-7.39L21 11.07 4 4z"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="hand" data-key="H" title="Рука (H / Пробіл)">
+        <svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-4 0v4M14 10V4a2 2 0 0 0-4 0v6M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="frame" data-key="F" title="Фрейм-контейнер (F)">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="6" x2="2" y2="6"/><line x1="22" y1="18" x2="2" y2="18"/><line x1="6" y1="2" x2="6" y2="22"/><line x1="18" y1="2" x2="18" y2="22"/></svg>
+      </button>
+
+      <span class="divider"></span>
+
+      <button type="button" class="tool-btn" data-tool="pen" data-key="P" title="Олівець (P)">
+        <svg viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="line" data-key="L" title="Гнучка лінія (L)">
+        <svg viewBox="0 0 24 24"><path d="M5 19C9 19 15 5 19 5"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="arrow" data-key="A" title="Гнучка стрілка (A)">
+        <svg viewBox="0 0 24 24"><path d="M5 19C8 11 13 8 19 5"/><polyline points="11 5 19 5 19 13"/></svg>
+      </button>
+
+      <span class="divider"></span>
+
+      <button type="button" class="tool-btn" data-tool="rect" data-key="R" title="Прямокутник (R)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="ellipse" data-key="O" title="Еліпс (O)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="diamond" data-key="D" title="Ромб (D)">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 22 12 12 22 2 12 12 2"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="cloud" data-key="C" title="Хмарка (C)">
+        <svg viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="bubble" data-key="B" title="Виноска (B)">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="star" data-key="W" title="Зірка (W)">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </button>
+
+      <span class="divider"></span>
+
+      <button type="button" class="tool-btn" data-tool="sticky" data-key="S" title="Стікер (S)">
+        <svg viewBox="0 0 24 24"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="code" data-key="M" title="Блок коду / Термінал (M)">
+        <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="todo" data-key="Q" title="Інтерактивний чекліст (Q)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="text" data-key="T" title="Текст (T)">
+        <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+      </button>
+      <button type="button" class="tool-btn" id="btn-image" data-key="I" title="Картинка (I / Ctrl+V)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="eyedropper" data-key="G" title="Піпетка стилю (G)">
+        <svg viewBox="0 0 24 24"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg>
+      </button>
+
+      <span class="divider"></span>
+
+      <button type="button" class="tool-btn" data-tool="eraser" data-key="E" title="Гумка (E)">
+        <svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+      </button>
+      <button type="button" class="tool-btn" data-tool="laser" data-key="K" title="Лазерна указка (K)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>
+      </button>
+    </nav>
+
+    <!-- Динамічна панель властивостей (зліва) -->
+    <aside class="glass-panel properties-panel" id="props-panel" hidden aria-label="Властивості">
+      <div class="panel-header-tag">
+        <span id="context-badge">Фігура</span>
+      </div>
+
+      <div class="prop-section" data-cap="stroke">
+        <div class="prop-header">
+          <span class="prop-label" id="lbl-stroke">Контур</span>
+          <input type="color" id="prop-stroke" value="#1e1e1e">
+        </div>
+        <div class="swatches" data-target="stroke">
+          <button type="button" class="swatch active" data-color="#1e1e1e" style="background:#1e1e1e"></button>
+          <button type="button" class="swatch" data-color="#e03131" style="background:#e03131"></button>
+          <button type="button" class="swatch" data-color="#2f9e44" style="background:#2f9e44"></button>
+          <button type="button" class="swatch" data-color="#1971c2" style="background:#1971c2"></button>
+          <button type="button" class="swatch" data-color="#f08c00" style="background:#f08c00"></button>
+          <button type="button" class="swatch" data-color="#7950f2" style="background:#7950f2"></button>
+        </div>
+      </div>
+
+      <div class="prop-section" data-cap="fill">
+        <div class="prop-header">
+          <span class="prop-label" id="lbl-fill">Заливка</span>
+          <input type="color" id="prop-fill" value="#fef08a">
+        </div>
+        <div class="swatches" data-target="fill">
+          <button type="button" class="swatch swatch-none active" data-color="none" title="Без заливки"></button>
+          <button type="button" class="swatch" data-color="#fef08a" style="background:#fef08a"></button>
+          <button type="button" class="swatch" data-color="#ffc9c9" style="background:#ffc9c9"></button>
+          <button type="button" class="swatch" data-color="#b2f2bb" style="background:#b2f2bb"></button>
+          <button type="button" class="swatch" data-color="#a5d8ff" style="background:#a5d8ff"></button>
+          <button type="button" class="swatch" data-color="#e5dbff" style="background:#e5dbff"></button>
+        </div>
+      </div>
+
+      <div class="prop-section arrow-box" data-cap="arrow">
+        <span class="prop-label">Геометрія та Потік</span>
+        <div class="prop-row">
+          <div class="prop-section half">
+            <label for="prop-curve" class="sub-label">Форма</label>
+            <select id="prop-curve">
+              <option value="curved">Дуга ⌒</option>
+              <option value="straight">Пряма /</option>
+              <option value="elbow">Кутова ↳</option>
+            </select>
+          </div>
+          <div class="prop-section half">
+            <label for="prop-head-start" class="sub-label">Початок</label>
+            <select id="prop-head-start">
+              <option value="none">Немає</option>
+              <option value="arrow">Стрілка ←</option>
+              <option value="triangle">Трикутн. ◀</option>
+              <option value="dot">Точка ●</option>
+              <option value="diamond">Ромб ◆</option>
+              <option value="bar">Штрих |</option>
+            </select>
+          </div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-section half">
+            <label for="prop-head-end" class="sub-label">Кінець</label>
+            <select id="prop-head-end">
+              <option value="arrow">Стрілка →</option>
+              <option value="triangle">Трикутн. ▶</option>
+              <option value="dot">Точка ●</option>
+              <option value="diamond">Ромб ◆</option>
+              <option value="bar">Штрих |</option>
+              <option value="none">Немає</option>
+            </select>
+          </div>
+          <div class="prop-section half">
+            <span class="sub-label">Вигин</span>
+            <button type="button" class="mini-btn" id="btn-reset-bend">Скинути</button>
+          </div>
+        </div>
+        <button type="button" class="mini-btn full" id="btn-flow" aria-pressed="false">⚡ Потік імпульсів: Вимк</button>
+      </div>
+
+      <div class="prop-section" data-cap="fillStyle">
+        <label for="prop-fill-style" class="prop-label">Текстура заливки</label>
+        <select id="prop-fill-style">
+          <option value="solid">Суцільна</option>
+          <option value="hachure">Штрихування ///</option>
+          <option value="cross">Перехресна ###</option>
+        </select>
+      </div>
+
+      <div class="prop-section" data-cap="rough">
+        <label for="prop-rough" class="prop-label">Стиль ліній</label>
+        <select id="prop-rough">
+          <option value="0">Чіткий вектор</option>
+          <option value="1">Скетч від руки ✎</option>
+        </select>
+      </div>
+
+      <div class="prop-section" data-cap="width">
+        <div class="prop-header">
+          <label for="prop-width" class="prop-label" id="lbl-width">Товщина</label>
+          <span id="width-val" class="prop-val">2</span>
+        </div>
+        <input type="range" id="prop-width" min="1" max="16" value="2">
+      </div>
+
+      <div class="prop-section" data-cap="dash">
+        <label for="prop-dash" class="prop-label">Штрих контуру</label>
+        <select id="prop-dash">
+          <option value="solid">Суцільна ———</option>
+          <option value="dashed">Пунктир - - -</option>
+          <option value="dotted">Крапки ······</option>
+        </select>
+      </div>
+
+      <div class="prop-section" data-cap="radius">
+        <div class="prop-header">
+          <label for="prop-radius" class="prop-label">Заокруглення кутів</label>
+          <span id="radius-val" class="prop-val">6</span>
+        </div>
+        <input type="range" id="prop-radius" min="0" max="48" value="6">
+      </div>
+
+      <div class="prop-section" data-cap="font">
+        <label for="prop-font" class="prop-label">Гарнітура шрифту</label>
+        <select id="prop-font">
+          <option value="sans">Сучасний Sans</option>
+          <option value="hand">Рукописний Hand ✍</option>
+          <option value="mono">Код / Mono</option>
+        </select>
+      </div>
+
+      <div class="prop-section" data-cap="opacity">
+        <div class="prop-header">
+          <label for="prop-opacity" class="prop-label">Прозорість</label>
+          <span id="opacity-val" class="prop-val">100%</span>
+        </div>
+        <input type="range" id="prop-opacity" min="10" max="100" value="100">
+      </div>
+
+      <div class="prop-section" data-cap="shadow">
+        <button type="button" class="mini-btn full" id="btn-shadow" aria-pressed="false">Тінь: Вимкнено</button>
+      </div>
+
+      <div class="prop-section" id="selection-actions" hidden>
+        <span class="prop-label">Шари та дії</span>
+        <div class="mini-actions">
+          <button type="button" class="mini-btn" id="btn-front" title="Наперед (])">Наперед</button>
+          <button type="button" class="mini-btn" id="btn-back" title="Назад ([)">Назад</button>
+          <button type="button" class="mini-btn" id="btn-lock" title="Заблокувати (Ctrl+L)">Блок</button>
+          <button type="button" class="mini-btn" id="btn-dup" title="Копіювати (Ctrl+D)">Копія</button>
+        </div>
+        <div class="align-bar" id="align-bar" hidden>
+          <button type="button" class="mini-btn" data-align="left" title="Ліворуч">⇤</button>
+          <button type="button" class="mini-btn" data-align="center" title="Центр X">↔</button>
+          <button type="button" class="mini-btn" data-align="right" title="Праворуч">⇥</button>
+          <button type="button" class="mini-btn" data-align="top" title="Верх">⇡</button>
+          <button type="button" class="mini-btn" data-align="middle" title="Центр Y">↕</button>
+          <button type="button" class="mini-btn" data-align="bottom" title="Низ">⇣</button>
+        </div>
+        <button type="button" class="mini-btn danger full" id="btn-del">Видалити (Del)</button>
+      </div>
+    </aside>
+
+    <!-- Нижня ліва панель: Історія та Масштаб -->
+    <div class="glass-panel bottom-left-controls" role="toolbar">
+      <button type="button" class="action-btn" id="btn-undo" title="Скасувати (Ctrl+Z)">
+        <svg viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+      </button>
+      <button type="button" class="action-btn" id="btn-redo" title="Повторити (Ctrl+Y)">
+        <svg viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+      </button>
+      <span class="divider"></span>
+      <button type="button" class="action-btn" id="btn-zoom-out" title="Зменшити (-)">
+        <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button type="button" id="zoom-label" class="zoom-text" title="Клік: 100% | Подвійний клік: X-Ray">100%</button>
+      <button type="button" class="action-btn" id="btn-zoom-in" title="Збільшити (+)">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button type="button" class="action-btn" id="btn-fit" title="Вмістити все (Shift+1)">
+        <svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+      </button>
+    </div>
+
+    <!-- Компактна міні-карта (знизу справа) -->
+    <div class="glass-panel minimap-wrap" id="minimap-wrap" title="Навігація по карті">
+      <canvas id="minimap" width="140" height="88"></canvas>
+    </div>
+
+    <!-- Верхня права панель: Спільний доступ, Експорт, Налаштування -->
+    <div class="glass-panel top-right-controls" role="toolbar">
+      <button type="button" class="share-btn" id="btn-share-room" title="Скопіювати посилання з дошкою">
+        <svg viewBox="0 0 24 24" width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span id="share-label">Спільний доступ</span>
+      </button>
+
+      <div class="dropdown-wrap">
+        <button type="button" class="action-btn" id="btn-export-menu" title="Експорт та Файл">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <div class="glass-panel dropdown-menu" id="export-menu" hidden>
+          <button type="button" class="menu-item" id="btn-export">Експорт у PNG</button>
+          <button type="button" class="menu-item" id="btn-export-svg">Експорт у SVG (вектор)</button>
+          <button type="button" class="menu-item" id="btn-save-json">Зберегти проєкт (.json)</button>
+          <button type="button" class="menu-item" id="btn-load-json">Імпорт проєкту (.json)</button>
+          <hr class="menu-sep">
+          <button type="button" class="menu-item danger" id="btn-clear">Очистити всю дошку</button>
+        </div>
+      </div>
+
+      <div class="dropdown-wrap">
+        <button type="button" class="action-btn spin-hover" id="btn-custom-menu" title="Кастомізація дошки та UI">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="glass-panel dropdown-menu custom-popover" id="custom-menu" hidden>
+          <span class="prop-label">Тема дошки</span>
+          <div class="theme-grid">
+            <button type="button" class="mini-btn" data-set-theme="light">Світла</button>
+            <button type="button" class="mini-btn" data-set-theme="dark">Темна</button>
+            <button type="button" class="mini-btn" data-set-theme="paper">Папір</button>
+            <button type="button" class="mini-btn" data-set-theme="blueprint">Креслення</button>
+            <button type="button" class="mini-btn" data-set-theme="midnight">Ніч</button>
+          </div>
+
+          <div class="prop-header">
+            <span class="prop-label">Акцент та Ореол</span>
+            <input type="color" id="ui-accent" value="#4f46e5">
+          </div>
+
+          <div class="prop-row">
+            <div class="prop-section half">
+              <label for="ui-grid-type" class="prop-label">Сітка</label>
+              <select id="ui-grid-type">
+                <option value="dots">Крапки</option>
+                <option value="lines">Клітинка</option>
+                <option value="iso">Ізометрія</option>
+                <option value="none">Чисто</option>
+              </select>
+            </div>
+            <div class="prop-section half">
+              <label for="ui-grid-size" class="prop-label">Крок: <span id="grid-size-val">20</span></label>
+              <input type="range" id="ui-grid-size" min="10" max="60" step="5" value="20">
+            </div>
+          </div>
+
+          <label class="check-row">
+            <input type="checkbox" id="ui-snap">
+            <span>Прив'язка до сітки (Snap)</span>
+          </label>
+
+          <hr class="menu-sep">
+          <span class="prop-label">Інтерфейс та Ефекти</span>
+
+          <div class="prop-row">
+            <div class="prop-section half">
+              <label for="ui-glass" class="prop-label">Скло</label>
+              <input type="range" id="ui-glass" min="40" max="100" value="86">
+            </div>
+            <div class="prop-section half">
+              <label for="ui-radius" class="prop-label">Округлість</label>
+              <input type="range" id="ui-radius" min="4" max="24" value="14">
+            </div>
+          </div>
+
+          <div class="prop-section">
+            <span class="prop-label">Мінікарта</span>
+            <button type="button" class="mini-btn full" id="btn-toggle-minimap">Показана</button>
+          </div>
+
+          <button type="button" class="mini-btn full" id="btn-toggle-xray">⚡ X-Ray Режим інженера (~)</button>
+        </div>
+      </div>
+
+      <button type="button" class="action-btn" id="btn-theme" title="Змінити тему">
+        <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+    </div>
+  </main>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
