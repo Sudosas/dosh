@@ -1,2 +1,42 @@
-# dosh
-An ultra-fast, lightweight interactive whiteboard (Miro/Excalidraw style) built with vanilla JS and Canvas 2D. Features zero dependencies, 0% CPU idle usage, P2P collaboration, custom themes, and an X-Ray engineering mode.
+# ⚡ UltraBoard Pro (`dosh`)
+
+<p align="center">
+  <b>Сучасна, надшвидка інтерактивна дошка для схем, нотаток і брейнштормів.</b><br>
+  Створена на чистому JavaScript (ESM) та HTML5 Canvas 2D без жодних сторонніх залежностей.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/stack-Vanilla%20JS%20%7C%20Canvas%202D-blue" alt="Tech Stack">
+  <img src="https://img.shields.io/badge/performance-0%25%20CPU%20Idle-success" alt="Performance">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+</p>
+
+---
+
+## 🚀 Основні фічі (Killer Features)
+
+* **⚡ Максимальна продуктивність (0% CPU у спокої):** Двошаровий рендеринг (`canvas-static` для нерухомих об'єктів + `canvas-live` для прев'ю та виділення) разом із Viewport Culling гарантують стабільні 60–120 FPS навіть при тисячах фігур на дошці.
+* **📐 Професійні гнучкі стрілки та лінії:** Підтримка кривих Безьє з можливістю вигинати лінію в будь-якому місці, магнітні порти прив'язки до фігур (автоматичне слідування за об'єктом при переміщенні) та кастомні наконечники.
+* **⚡ Потік даних (Animated Pulse Mode):** Режим анімованих світних імпульсів, що біжать уздовж стрілок для презентації архітектури.
+* **💻 Інтерактивні блоки коду та чеклісти:** Картки в стилі macOS із підсвіткою синтаксису, кнопкою копіювання та клікабельними галочками прямо на полотні.
+* **🎯 Радіальне меню (Pie Menu):** Швидкий вибір інструментів і дій навколо курсора за допомогою правого кліка миші (ПКМ).
+* **🔒 Менеджер дошок та 24/7 Кімнати:** Локальний профіль із підтримкою кількох дошок (IndexedDB), синхронізація вкладок через `BroadcastChannel` та збереження стану через хмарні JSON-слоти й URL-шаринг.
+* **🎨 Повна кастомізація:** 5 красивих пресетів тем (*Light, Dark, Paper, Blueprint, Midnight*), кастомні акценти, типи сіток (Крапки, Клітинка, Ізометрія) та секретний режим інженера **X-Ray HUD** (`~` або код `xray`).
+
+---
+
+## 🛠️ Архітектура та Технології
+
+Проєкт написаний за принципом **Zero-Dependency** (чистий vanilla JS):
+* **Geometry & Hit-Testing:** Власні математичні алгоритми перетину відрізків, кривих Безьє та хендл-трансформацій (масштабування за 4 кути, поворот із фіксацією по 15°).
+* **Rendering Engine:** Оптимізований `Canvas 2D Context` з кешуванням мікротекстур штрихування (`CanvasPattern`) для ефекту Excalidraw без навантаження на CPU.
+* **Storage:** Гібридне збереження (IndexedDB для кешування сесій + стиснення сцени за допомогою `CompressionStream('gzip')` у хеш URL-посилання).
+
+---
+
+## 📦 Як запустити локально
+
+1. Клонуй репозиторій або завантаж архів:
+   ```bash
+   git clone [https://github.com/ТВІЙ_ЛОГІН/dosh.git](https://github.com/ТВІЙ_ЛОГІН/dosh.git)
+   cd dosh
