@@ -1,42 +1,57 @@
 # ⚡ UltraBoard Pro (`dosh`)
 
 <p align="center">
-  <b>Сучасна, надшвидка інтерактивна дошка для схем, нотаток і брейнштормів.</b><br>
-  Створена на чистому JavaScript (ESM) та HTML5 Canvas 2D без жодних сторонніх залежностей.
+  <b>A modern, ultra-fast interactive whiteboard for diagrams, notes, and brainstorming.</b><br>
+  Built with vanilla JavaScript (ES modules) and HTML5 Canvas 2D, with no third-party dependencies.
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/stack-Vanilla%20JS%20%7C%20Canvas%202D-blue" alt="Tech Stack">
-  <img src="https://img.shields.io/badge/performance-0%25%20CPU%20Idle-success" alt="Performance">
+  <a href="https://sudosas.github.io/dosh/">Open the live demo</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/stack-Vanilla%20JS%20%7C%20Canvas%202D-blue" alt="Tech stack">
+  <img src="https://img.shields.io/badge/performance-0%25%20CPU%20idle-success" alt="Performance">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
 ---
 
-## 🚀 Основні фічі (Killer Features)
+## 🚀 Features
 
-* **⚡ Максимальна продуктивність (0% CPU у спокої):** Двошаровий рендеринг (`canvas-static` для нерухомих об'єктів + `canvas-live` для прев'ю та виділення) разом із Viewport Culling гарантують стабільні 60–120 FPS навіть при тисячах фігур на дошці.
-* **📐 Професійні гнучкі стрілки та лінії:** Підтримка кривих Безьє з можливістю вигинати лінію в будь-якому місці, магнітні порти прив'язки до фігур (автоматичне слідування за об'єктом при переміщенні) та кастомні наконечники.
-* **⚡ Потік даних (Animated Pulse Mode):** Режим анімованих світних імпульсів, що біжать уздовж стрілок для презентації архітектури.
-* **💻 Інтерактивні блоки коду та чеклісти:** Картки в стилі macOS із підсвіткою синтаксису, кнопкою копіювання та клікабельними галочками прямо на полотні.
-* **🎯 Радіальне меню (Pie Menu):** Швидкий вибір інструментів і дій навколо курсора за допомогою правого кліка миші (ПКМ).
-* **🔒 Менеджер дошок та 24/7 Кімнати:** Локальний профіль із підтримкою кількох дошок (IndexedDB), синхронізація вкладок через `BroadcastChannel` та збереження стану через хмарні JSON-слоти й URL-шаринг.
-* **🎨 Повна кастомізація:** 5 красивих пресетів тем (*Light, Dark, Paper, Blueprint, Midnight*), кастомні акценти, типи сіток (Крапки, Клітинка, Ізометрія) та секретний режим інженера **X-Ray HUD** (`~` або код `xray`).
+- **Efficient rendering:** A two-layer canvas separates static and interactive content, targeting 0% CPU usage while idle.
+- **Flexible arrows and lines:** Create and bend connectors with Bézier curves.
+- **Animated pulse mode:** Add glowing animated pulses along arrows for presentations.
+- **Interactive code blocks and checklists:** macOS-style cards include syntax highlighting and copy controls.
+- **Radial menu:** Quickly access tools and actions around the cursor with the right mouse button.
+- **Board manager and always-on rooms:** Keep multiple boards in a local profile using IndexedDB and collaborate through persistent rooms.
+- **Customization:** Choose from Light, Dark, Paper, Blueprint, and Midnight themes, with custom accents and grid styles.
 
----
+## 🛠️ Architecture
 
-## 🛠️ Архітектура та Технології
+This project follows a zero-dependency approach using vanilla JavaScript:
 
-Проєкт написаний за принципом **Zero-Dependency** (чистий vanilla JS):
-* **Geometry & Hit-Testing:** Власні математичні алгоритми перетину відрізків, кривих Безьє та хендл-трансформацій (масштабування за 4 кути, поворот із фіксацією по 15°).
-* **Rendering Engine:** Оптимізований `Canvas 2D Context` з кешуванням мікротекстур штрихування (`CanvasPattern`) для ефекту Excalidraw без навантаження на CPU.
-* **Storage:** Гібридне збереження (IndexedDB для кешування сесій + стиснення сцени за допомогою `CompressionStream('gzip')` у хеш URL-посилання).
+- **Geometry and hit testing:** Custom algorithms for segment and Bézier-curve intersections and handle transformations.
+- **Rendering engine:** An optimized Canvas 2D context with cached hatch micro-textures for an Excalidraw-inspired look.
+- **Storage:** IndexedDB session caching and scene compression with `CompressionStream('gzip')`, stored in the URL hash.
 
----
+## 📦 Run locally
 
-## 📦 Як запустити локально
+1. Clone the repository:
 
-1. Клонуй репозиторій або завантаж архів:
    ```bash
-   git clone [https://github.com/ТВІЙ_ЛОГІН/dosh.git](https://github.com/ТВІЙ_ЛОГІН/dosh.git)
+   git clone https://github.com/Sudosas/dosh.git
    cd dosh
+   ```
+
+2. Start a local static web server and open the project in your browser. For example, with Python:
+
+   ```bash
+   python -m http.server 8000
+   ```
+
+   Then visit <http://localhost:8000>.
+
+## 🌐 Live demo
+
+[Open UltraBoard Pro on GitHub Pages](https://sudosas.github.io/dosh/)
